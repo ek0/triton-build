@@ -3,6 +3,30 @@ include(ExternalProject)
 
 project(triton-runner)
 
+message("Installing to ${CMAKE_INSTALL_PREFIX}")
+
+#
+# Generating the LLVM project, which is required by Triton
+#
+ExternalProject_Add(
+  llvm_ep
+  GIT_REPOSITORY     https://github.com/llvm/llvm-project.git
+  GIT_TAG            llvmorg-15.0.3
+  GIT_SHALLOW        1
+  SOURCE_SUBDIR      llvm
+  CMAKE_ARGS         -DLLVM_BUILD_TOOLS=OFF
+                     -DLLVM_BUILD_EXAMPLES=OFF
+                     -DLLVM_BUILD_BENCHMARKS=OFF
+                     -DBUILD_SHARED_LIBS=OFF
+                     -DLLVM_USE_CRT_RELEASE=MT
+                     -DLLVM_USE_CRT_DEBUG=MTd
+                     -DLLVM_USE_CRT_RELWITHDEBINFO=MT
+                     -DLLVM_USE_CRT_MINSIZEREL=MT
+                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                     -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+  PREFIX             "${CMAKE_BINARY_DIR}/llvm-build"
+)
+
 #
 # Generating the Capstone engine project, which is required by Triton
 #
@@ -16,6 +40,7 @@ ExternalProject_Add(
                         -DCAPSTONE_BUILD_CSTOOL=OFF
                         -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
                         -DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
+                        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     PREFIX             "${CMAKE_BINARY_DIR}/capstone"
     BUILD_BYPRODUCTS    "<BINARY_DIR>/capstone.lib"
 )
@@ -26,20 +51,24 @@ ExternalProject_Add(
 ExternalProject_Add(
     triton_ep
     GIT_REPOSITORY   https://github.com/JonathanSalwan/Triton.git
-    GIT_TAG          b9fb2e7b586e7e7ee39ef41e2afed8de1a63f29a
+    GIT_TAG          4152abfb1899282b194c11c9e5054684ce73ce86
     CMAKE_ARGS       -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-                     -DZ3_LIBRARY_DIRS=${CMAKE_INSTALL_PREFIX}/lib/libz3.lib
-                     -DZ3_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
-                     -DCAPSTONE_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
-                     -DCAPSTONE_LIBRARIES=${CMAKE_INSTALL_PREFIX}/lib/capstone.lib
+                     #-DZ3_LIBRARY_DIRS=${CMAKE_INSTALL_PREFIX}/lib/libz3.lib
+                     #-DZ3_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
+                     #-DCAPSTONE_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
+                     #-DCAPSTONE_LIBRARIES=${CMAKE_INSTALL_PREFIX}/lib/capstone.lib
                      -DBOOST_INTERFACE=OFF
                      -DBUILD_EXAMPLES=OFF
                      -DPYTHON_BINDINGS=OFF
                      -DENABLE_TEST=OFF
                      -DBUILD_SHARED_LIBS=OFF
-                     -DMSVC_STATIC=OFF
+                     -DMSVC_STATIC=ON
                      -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
                      -DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
+                     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}
+                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                     -DLLVM_INTERFACE=ON
+                     -DZ3_INTERFACE=ON
     PREFIX	         "${CMAKE_BINARY_DIR}/triton"
     BUILD_BYPRODUCTS "<BINARY_DIR>/triton.lib"
 )
@@ -51,6 +80,7 @@ ExternalProject_Add(
     z3_ep
     GIT_REPOSITORY              https://github.com/Z3Prover/z3.git
     GIT_TAG                     19da3c7086dcf5cd0c78a82db9f99f5ef295b8ff # 4.11.0
+    GIT_SHALLOW                 1
     CMAKE_GENERATOR             "Ninja"
     CMAKE_ARGS                  -DZ3_ENABLE_EXAMPLE_TARGETS=OFF
                                 -DZ3_BUILD_LIBZ3_SHARED=OFF
@@ -58,34 +88,37 @@ ExternalProject_Add(
                                 -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
                                 -DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
                                 -DCMAKE_CXX_COMPILER=cl # Z3 behaves weirdly with clang-cl...
+                                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                                -DCMAKE_CXX_FLAGS="/D WIN32 /D _WINDOWS"
     PREFIX                      "${CMAKE_BINARY_DIR}/z3"
     BUILD_BYPRODUCTS            "<BINARY_DIR>/libz3.lib"
 )
 
 # We don't generate triton.lib until all other targets are installed
-ExternalProject_Add_StepDependencies(triton_ep install z3_ep capstone_ep)
+ExternalProject_Add_StepDependencies(triton_ep install z3_ep capstone_ep llvm_ep)
+
 
 # Retrieving the platform lib.exe (ar on linux, libtool on macOS. Unsupported at the moment)
-cmake_path(GET CMAKE_LINKER PARENT_PATH LINKER_PARENT_PATH)
-message(STATUS "Top-level compiler used: ${CMAKE_CXX_COMPILER_ID}.")
-message(STATUS "Lib.exe directory: ${LINKER_PARENT_PATH}")
+#cmake_path(GET CMAKE_LINKER PARENT_PATH LINKER_PARENT_PATH)
+#message(STATUS "Top-level compiler used: ${CMAKE_CXX_COMPILER_ID}.")
+#message(STATUS "Lib.exe directory: ${LINKER_PARENT_PATH}")
 
 # Merging all libraries together for easier linking in external projects.
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    set(LIB_EXE ${LINKER_PARENT_PATH}/llvm-lib.exe)
-    message(STATUS "Using: ${LIB_EXE}.")
-    add_custom_target(triton_all ALL
-        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
-        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
-        DEPENDS triton_ep z3_ep capstone_ep)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-    set(LIB_EXE ${LINKER_PARENT_PATH}/lib.exe)
-    message(STATUS "Using: ${LIB_EXE}.")
-    add_custom_target(triton_all ALL
-        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
-        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
-        DEPENDS triton_ep z3_ep capstone_ep)
-else()
-    # Extend here if required for other platforms
-    message(WARNING "No suitable lib.exe found, skipping merging...")
-endif()
+#if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+#    set(LIB_EXE ${LINKER_PARENT_PATH}/llvm-lib.exe)
+#    message(STATUS "Using: ${LIB_EXE}.")
+#    add_custom_target(triton_all ALL
+#        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
+#        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
+#        DEPENDS triton_ep z3_ep capstone_ep)
+#elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+#    set(LIB_EXE ${LINKER_PARENT_PATH}/lib.exe)
+#    message(STATUS "Using: ${LIB_EXE}.")
+#    add_custom_target(triton_all ALL
+#        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
+#        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
+#        DEPENDS triton_ep z3_ep capstone_ep)
+#else()
+#    # Extend here if required for other platforms
+#    message(WARNING "No suitable lib.exe found, skipping merging...")
+#endif()

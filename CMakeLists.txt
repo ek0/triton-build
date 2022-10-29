@@ -96,29 +96,3 @@ ExternalProject_Add(
 
 # We don't generate triton.lib until all other targets are installed
 ExternalProject_Add_StepDependencies(triton_ep install z3_ep capstone_ep llvm_ep)
-
-
-# Retrieving the platform lib.exe (ar on linux, libtool on macOS. Unsupported at the moment)
-#cmake_path(GET CMAKE_LINKER PARENT_PATH LINKER_PARENT_PATH)
-#message(STATUS "Top-level compiler used: ${CMAKE_CXX_COMPILER_ID}.")
-#message(STATUS "Lib.exe directory: ${LINKER_PARENT_PATH}")
-
-# Merging all libraries together for easier linking in external projects.
-#if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-#    set(LIB_EXE ${LINKER_PARENT_PATH}/llvm-lib.exe)
-#    message(STATUS "Using: ${LIB_EXE}.")
-#    add_custom_target(triton_all ALL
-#        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
-#        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
-#        DEPENDS triton_ep z3_ep capstone_ep)
-#elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-#    set(LIB_EXE ${LINKER_PARENT_PATH}/lib.exe)
-#    message(STATUS "Using: ${LIB_EXE}.")
-#    add_custom_target(triton_all ALL
-#        COMMAND ${LIB_EXE} /OUT:${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib ${CMAKE_INSTALL_PREFIX}/lib/capstone.lib ${CMAKE_INSTALL_PREFIX}/lib/libz3.lib ${CMAKE_INSTALL_PREFIX}/lib/triton.lib
-#        BYPRODUCTS ${CMAKE_INSTALL_PREFIX}/lib/triton_all.lib
-#        DEPENDS triton_ep z3_ep capstone_ep)
-#else()
-#    # Extend here if required for other platforms
-#    message(WARNING "No suitable lib.exe found, skipping merging...")
-#endif()

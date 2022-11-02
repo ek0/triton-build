@@ -50,8 +50,8 @@ ExternalProject_Add(
 #
 ExternalProject_Add(
     triton_ep
-    GIT_REPOSITORY   https://github.com/JonathanSalwan/Triton.git
-    GIT_TAG          4152abfb1899282b194c11c9e5054684ce73ce86
+    GIT_REPOSITORY   https://github.com/ek0/Triton/tree/1-symexpr_address
+    GIT_TAG          1a58d400fb0e287c8abc0ea39b011e41bb88f8c3
     CMAKE_ARGS       -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                      #-DZ3_LIBRARY_DIRS=${CMAKE_INSTALL_PREFIX}/lib/libz3.lib
                      #-DZ3_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include

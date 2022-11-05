@@ -1,0 +1,53 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 23,
+      "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "windows-x64-clang-debug",
+        "displayName": "Windows x64 Clang Debug",
+        "description": "Windows x64 Clang Debug Configuration",
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build/debug",
+        "cacheVariables": {
+          "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/debug/install",
+          "CMAKE_BUILD_TYPE": "Debug"
+        },
+        "environment":
+        {
+          "CC": "clang-cl",
+          "CXX": "clang-cl"
+        }
+      },
+      {
+        "name": "windows-x64-clang-release",
+        "displayName": "Windows x64 Clang Release",
+        "description": "Windows x64 Clang Release Configuration",
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build/release",
+        "installDir": "${sourceDir}/build/release/install",
+        "cacheVariables": {
+          "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/release/install",
+          "CMAKE_BUILD_TYPE": "Release"
+        },
+        "environment":
+        {
+          "CC": "clang-cl",
+          "CXX": "clang-cl"
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "windows-x64-clang-debug",
+        "configurePreset": "windows-x64-clang-debug"
+      },
+      {
+        "name": "windows-x64-clang-release",
+        "configurePreset": "windows-x64-clang-release"
+      }
+    ]
+  }

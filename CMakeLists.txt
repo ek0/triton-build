@@ -11,7 +11,7 @@ message("Installing to ${CMAKE_INSTALL_PREFIX}")
 ExternalProject_Add(
   llvm_ep
   GIT_REPOSITORY     https://github.com/llvm/llvm-project.git
-  GIT_TAG            llvmorg-15.0.3
+  GIT_TAG            llvmorg-15.0.4
   GIT_SHALLOW        1
   SOURCE_SUBDIR      llvm
   CMAKE_ARGS         -DLLVM_BUILD_TOOLS=OFF
@@ -51,7 +51,7 @@ ExternalProject_Add(
 ExternalProject_Add(
     triton_ep
     GIT_REPOSITORY   https://github.com/JonathanSalwan/Triton.git
-    GIT_TAG          4152abfb1899282b194c11c9e5054684ce73ce86
+    GIT_TAG          339f16076381f6efdde1a4a156631e0de71e2026
     CMAKE_ARGS       -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                      #-DZ3_LIBRARY_DIRS=${CMAKE_INSTALL_PREFIX}/lib/libz3.lib
                      #-DZ3_INCLUDE_DIRS=${CMAKE_INSTALL_PREFIX}/include
@@ -79,7 +79,7 @@ ExternalProject_Add(
 ExternalProject_Add(
     z3_ep
     GIT_REPOSITORY              https://github.com/Z3Prover/z3.git
-    GIT_TAG                     19da3c7086dcf5cd0c78a82db9f99f5ef295b8ff # 4.11.0
+    GIT_TAG                     8e6f17ebd011a352b3e67fcec03dcd4378a1472c # 4.11.2
     GIT_SHALLOW                 1
     CMAKE_GENERATOR             "Ninja"
     CMAKE_ARGS                  -DZ3_ENABLE_EXAMPLE_TARGETS=OFF
